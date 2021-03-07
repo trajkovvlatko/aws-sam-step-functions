@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  currency-convertor
+
+Resources:
+  CurrencyConvertorStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/currency_convertor.asl.json
+      DefinitionSubstitutions:
+        PrepareFunctionArn: !GetAtt PrepareFunction.Arn
+        SekToEurFunctionArn: !GetAtt SekToEurFunction.Arn
+        EurToSekFunctionArn: !GetAtt EurToSekFunction.Arn
+        DDBPutItem: !Sub arn:${AWS::Partition}:states:::dynamodb:putItem
+        DDBTable: !Ref TransactionTable
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PrepareFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SekToEurFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EurToSekFunction
+        - DynamoDBWritePolicy:
+            TableName: !Ref TransactionTable
+
+  PrepareFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/prepare/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+
+  SekToEurFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/sek-to-eur/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+
+  EurToSekFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/eur-to-sek/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+
+  TransactionTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: Id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+Outputs:
+  CurrencyConvertorStateMachineArn:
+    Description: "Currency convertor state machine ARN"
+    Value: !Ref CurrencyConvertorStateMachine
+  CurrencyConvertorStateMachineRole:
+    Description: "IAM Role created for Currency convertor state machine based on the specified SAM Policy Templates"
+    Value: !GetAtt CurrencyConvertorStateMachineRole.Arn

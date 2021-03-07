@@ -1,0 +1,7 @@
+{
+  "name": "prepare",
+  "version": "1.0.0",
+  "description": "Prepare inputs for currency convertor",
+  "main": "app.js",
+  "dependencies": {}
+}

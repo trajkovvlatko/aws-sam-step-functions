@@ -1,0 +1,7 @@
+{
+  "name": "eur-to-sek",
+  "version": "1.0.0",
+  "description": "Convert EUR to SEK",
+  "main": "app.js",
+  "dependencies": {}
+}

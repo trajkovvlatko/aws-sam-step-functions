@@ -1,0 +1,101 @@
+{
+  "Comment": "A state machine for currency conversion.",
+  "StartAt": "Prepare",
+  "States": {
+    "Prepare": {
+      "Type": "Task",
+      "Resource": "${PrepareFunctionArn}",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 15,
+          "MaxAttempts": 5,
+          "BackoffRate": 1.5
+        }
+      ],
+      "Next": "Convertor switch"
+    },
+    "Convertor switch": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.from",
+              "StringEquals": "SEK"
+            },
+            {
+              "Variable": "$.to",
+              "StringEquals": "EUR"
+            }
+          ],
+          "Next": "SEK TO EUR"
+        }
+      ],
+      "Default": "EUR TO SEK"
+    },
+    "SEK TO EUR": {
+      "Type": "Task",
+      "Resource": "${SekToEurFunctionArn}",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 1
+        }
+      ],
+      "Next": "Save request"
+    },
+    "EUR TO SEK": {
+      "Type": "Task",
+      "Resource": "${EurToSekFunctionArn}",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 1
+        }
+      ],
+      "Next": "Save request"
+    },
+    "Save request": {
+      "Type": "Task",
+      "Resource": "${DDBPutItem}",
+      "Parameters": {
+        "TableName": "${DDBTable}",
+        "Item": {
+          "Id": {
+            "S.$": "$.id"
+          },
+          "From": {
+            "S.$": "$.from"
+          },
+          "To": {
+            "S.$": "$.to"
+          },
+          "Amount": {
+            "N.$": "$.amount"
+          },
+          "Result": {
+            "N.$": "$.result"
+          },
+          "Timestamp": {
+            "S.$": "$.timestamp"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 20,
+          "MaxAttempts": 5,
+          "BackoffRate": 10
+        }
+      ],
+      "End": true
+    }
+  }
+}
+
